@@ -18,7 +18,18 @@ return new class extends Migration {
         // 2. CÁC BẢNG QUẢN LÝ NGƯỜI DÙNG & HỌC THUẬT
         Schema::create('admins', function (Blueprint $table) { $table->id(); $table->string('name', 100)->nullable(); $table->string('username', 50)->unique(); $table->string('password', 255); $table->string('role', 20)->default('admin'); $table->rememberToken(); $table->timestamps(); });
         Schema::create('users', function (Blueprint $table) { $table->id(); $table->string('name', 100); $table->string('email', 100)->unique(); $table->string('student_code', 20)->nullable()->unique(); $table->string('class', 20)->nullable(); $table->string('password', 255); $table->string('role', 20)->default('student'); $table->tinyInteger('survey_done')->default(0); $table->boolean('is_active')->default(true); $table->rememberToken(); $table->timestamps(); });
-        Schema::create('giangvien', function (Blueprint $table) { $table->id(); $table->string('name', 100); $table->string('email', 100)->unique(); $table->string('department', 100)->nullable(); $table->string('phone', 20)->nullable(); $table->timestamps(); });
+        Schema::create('giangvien', function (Blueprint $table) { 
+    $table->id(); 
+    $table->string('name', 100); 
+    $table->string('username', 50)->unique(); 
+    $table->string('email', 100)->unique(); 
+    $table->string('password', 255);          
+    $table->string('department', 100)->nullable(); 
+    $table->string('phone', 20)->nullable(); 
+    $table->string('role', 20)->default('teacher'); 
+    $table->rememberToken();
+    $table->timestamps(); 
+});
         Schema::create('school_year', function (Blueprint $table) { $table->string('year', 9); $table->integer('semester'); $table->boolean('status')->default(true); $table->primary(['year', 'semester']); $table->timestamps(); });
         Schema::create('subjects', function (Blueprint $table) { $table->id(); $table->string('name'); $table->string('slug')->unique(); $table->timestamps(); });
         Schema::create('classes', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('teacher_id'); $table->string('name'); $table->string('join_code', 10)->unique(); $table->text('description')->nullable(); $table->boolean('is_active')->default(true); $table->timestamps(); });
