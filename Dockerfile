@@ -1,35 +1,34 @@
-# Sử dụng image PHP 8.2 có sẵn Nginx
+# Sử dụng image PHP + Nginx ổn định
 FROM richarvey/nginx-php-fpm:latest
 
-# Thiết lập thư mục làm việc
+# Copy toàn bộ code
 COPY . /var/www/html
 
-# Cấu hình môi trường cho Laravel
-ENV WEBROOT /var/www/html/public
-ENV PHP_UPLOAD_MAX_FILESIZE 100M
-ENV PHP_POST_MAX_SIZE 100M
+# Thiết lập biến cho image
+ENV WEBROOT=/var/www/html/public
+ENV PHP_UPLOAD_MAX_FILESIZE=100M
+ENV PHP_POST_MAX_SIZE=100M
+ENV PHP_MEMORY_LIMIT=512M
 
-# Cài đặt các dependencies của PHP (Composer)
-RUN composer install --no-dev --optimize-autoloader
+# Cài Composer dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# NÂNG CẤP NODE.JS LÊN PHIÊN BẢN 22 ĐỂ PHÙ HỢP VỚI VITE 7
-RUN apk add --no-cache nodejs-current npm && \
+# Cài Node.js + Build Vite (nếu bạn dùng Vite)
+RUN apk add --no-cache nodejs npm && \
     npm install && \
     npm run build
 
-# Tạo các thư mục framework nếu chưa có và cấp quyền
-RUN mkdir -p /var/www/html/storage/framework/sessions \
-    && mkdir -p /var/www/html/storage/framework/views \
-    && mkdir -p /var/www/html/storage/framework/cache \
+# Tạo thư mục Laravel
+RUN mkdir -p /var/www/html/storage/framework/{sessions,views,cache} \
     && mkdir -p /var/www/html/storage/logs \
     && mkdir -p /var/www/html/bootstrap/cache
 
-# Phân quyền cho Laravel
+# Phân quyền
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose port 80
-EXPOSE 80
+# Expose port theo Railway
+EXPOSE ${PORT:-80}
 
-# Lệnh khởi chạy
+# Khởi chạy (image này dùng start.sh)
 CMD ["/start.sh"]
