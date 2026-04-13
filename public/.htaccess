@@ -13,6 +13,18 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
+    # Block access to config files
+    RewriteRule "^config/" - [F]
+    RewriteRule "^\.env" - [F]
+    RewriteRule "^storage/" - [F]
+    RewriteRule "^bootstrap/" - [F]
+    
+    # Deny access to composer files
+    RewriteRule "^composer\." - [F]
+    
+    # Deny access to git
+    RewriteRule "^\.git" - [F]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
@@ -23,3 +35,38 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Additional security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.googleapis.com *.gstatic.com; style-src 'self' 'unsafe-inline' *.googleapis.com fonts.gstatic.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:;"
+</IfModule>
+
+# Protect sensitive files
+<FilesMatch "\.(env|json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Disable directory listing
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# PHP configuration
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_value error_reporting E_ALL
+    php_value upload_max_filesize 100M
+    php_value post_max_size 100M
+    php_value max_execution_time 300
+</IfModule>
+

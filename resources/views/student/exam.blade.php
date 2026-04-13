@@ -29,6 +29,8 @@
                 @csrf
                 <input type="hidden" name="quiz_id" value="{{ $quiz->id }}">
                 
+                <input type="hidden" name="attempt_id" value="{{ $attempt->id }}">
+                
                 @foreach($questions as $index => $q)
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-6 question-card border border-transparent transition-all" id="q-card-{{ $index + 1 }}">
                     <div class="flex justify-between mb-4">
@@ -133,7 +135,11 @@
             fetch('{{ route("exam.log-cheat") }}', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'tab_switch' })
+                // ĐÃ SỬA: Gửi kèm attempt_id để Server biết cộng điểm gian lận cho ai
+                body: JSON.stringify({ 
+                    attempt_id: '{{ $attempt->id }}', 
+                    type: 'tab_switch' 
+                })
             });
         }
     };
@@ -161,7 +167,7 @@
         if (!isSafeExit) return "Bài làm chưa được lưu!";
     };
     
-    // Thẻ VIP cho nút thoát
+   
     document.querySelectorAll('a[href="/logout"]').forEach(btn => {
         btn.onclick = () => isSafeExit = true;
     });

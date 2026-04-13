@@ -1,139 +1,312 @@
 @extends('layouts.admin')
 
+@section('title', 'Quản lý đề thi')
+
 @section('content')
-<div class="container mx-auto">
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">Quản lý Đề thi</h1>
-
-    <div class="bg-white p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
-        <h2 class="text-sm font-semibold text-gray-500 uppercase mb-4">Tạo đề thi & Tự động Random câu hỏi</h2>
-        <form method="POST" action="{{ route('admin.quiz.store') }}" class="flex flex-col md:flex-row gap-4 items-end">
-            @csrf
-            <div class="flex-1">
-                <label class="block text-xs text-gray-500 font-bold mb-1">Tên đề thi mới *</label>
-                <input name="title" class="w-full border-gray-300 rounded-lg shadow-sm" placeholder="Ví dụ: Thi Cuối Kỳ 2026" required>
-            </div>
-            
-            <div class="w-full md:w-32">
-                <label class="block text-xs text-gray-500 font-bold mb-1">Thời gian *</label>
-                <div class="relative">
-                    <input name="duration" type="number" class="w-full border-gray-300 rounded-lg shadow-sm pr-12" placeholder="Phút" required>
-                    <span class="absolute right-3 top-2 text-gray-400 text-sm">phút</span>
-                </div>
-            </div>
-
-            <div class="w-full md:w-48">
-                <label class="block text-xs text-indigo-500 font-bold mb-1">Random bao nhiêu câu?</label>
-                <div class="relative">
-                    <input name="random_count" type="number" min="0" value="0" class="w-full border-indigo-300 bg-indigo-50 rounded-lg shadow-sm pr-10 focus:ring-indigo-500">
-                    <span class="absolute right-3 top-2 text-indigo-400 text-sm">câu</span>
-                </div>
-            </div>
-
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-md h-[42px] flex items-center">
-                <i class="fas fa-magic mr-2"></i> Tạo Đề
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Quản lý Đề Thi</h1>
+        <div class="flex gap-3">
+            <a href="{{ route('admin.ai-generate') }}" 
+               class="bg-purple-600 text-white px-5 py-2.5 rounded-xl hover:bg-purple-700 transition flex items-center gap-2">
+                <i class="fas fa-magic"></i> Phát sinh bằng AI
+            </a>
+            <button onclick="document.getElementById('createQuizModal').classList.toggle('hidden')" 
+                    class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition flex items-center gap-2">
+                <i class="fas fa-plus"></i> Tạo đề thi mới
             </button>
-        </form>
-        <p class="text-[11px] text-gray-400 mt-2 italic">* Để số 0 nếu bạn muốn tự thêm câu hỏi thủ công sau.</p>
+        </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50 border-b">
+    <div class="bg-white rounded-2xl shadow overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Đề thi</th>
-                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Thời gian</th>
-                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Hiển thị điểm</th>
-                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Hành động</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">ID</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">Tên đề thi</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">Thời gian (phút)</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">Câu hỏi</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">Lượt thi</th>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">Điểm Pass</th>
+                    <th class="px-6 py-4 text-center text-sm font-medium text-gray-500">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-                @foreach($quizzes as $q)
-                <tr class="hover:bg-gray-50 transition">
+                @forelse($quizzes as $quiz)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">#{{ $quiz->id }}</td>
+                    <td class="px-6 py-4 font-medium">{{ $quiz->title }}</td>
+                    <td class="px-6 py-4">{{ $quiz->duration }} phút</td>
                     <td class="px-6 py-4">
-                        <div class="font-bold text-gray-800">{{ $q->title }}</div>
-                        <div class="text-xs text-gray-400">{{ $q->questions_count ?? 0 }} câu hỏi</div>
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                            {{ $quiz->questions_count ?? 0 }}
+                        </span>
                     </td>
-                    <td class="px-6 py-4 text-center text-sm">{{ $q->duration }} phút</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                            {{ $quiz->exam_attempts_count ?? 0 }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">{{ $quiz->pass_score ?? 5.0 }}/10</td>
                     <td class="px-6 py-4 text-center">
-                        <form action="{{ route('admin.quiz.toggle-score', $q->id) }}" method="POST">
-                            @csrf
-                            @php $isHidden = Cache::get('hide_score_'.$q->id, false); @endphp
-                            <button class="text-[10px] px-2 py-1 rounded-full border {{ $isHidden ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-600 border-green-200' }}">
-                                {{ $isHidden ? 'Đang Ẩn' : 'Đang Hiện' }}
+                        <div class="flex justify-center gap-2">
+                            <a href="{{ route('admin.quiz.questions', $quiz->id) }}" 
+                               class="text-indigo-600 hover:text-indigo-800 text-xs" title="Quản lý câu hỏi">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ route('admin.quiz.results', $quiz->id) }}" 
+                               class="text-green-600 hover:text-green-800 text-xs" title="Xem kết quả">
+                                <i class="fas fa-chart-bar"></i>
+                            </a>
+                            <button onclick="editQuiz({{ $quiz->id }}, '{{ $quiz->title }}', {{ $quiz->duration }}, {{ $quiz->pass_score ?? 5.0 }})" 
+                                    class="text-yellow-600 hover:text-yellow-800 text-xs" title="Sửa">
+                                <i class="fas fa-pencil"></i>
                             </button>
-                        </form>
-                    </td>
-                    <td class="px-6 py-4 text-right space-x-2">
-                        <a href="{{ route('admin.questions', $q->id) }}" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded" title="Quản lý Câu hỏi"><i class="fas fa-list-ul"></i></a>
-                        
-                        <button onclick="openEditModal({{ $q->id }}, '{{ $q->title }}', {{ $q->duration }})" class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded" title="Sửa Đề thi">
-                            <i class="fas fa-edit"></i>
-                        </button>
-
-                        <a href="{{ route('admin.quiz.export', $q->id) }}" class="text-green-600 hover:text-green-900 bg-green-50 p-2 rounded" title="Xuất Excel"><i class="fas fa-file-excel"></i></a>
-
-                        <form action="{{ route('admin.quiz.destroy', $q->id) }}" method="POST" class="inline delete-form">
-                            @csrf @method('DELETE')
-                            <button type="button" onclick="confirmDelete(this)" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded" title="Xóa Đề thi">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
+                            <form action="{{ route('admin.quizzes.destroy', $quiz->id) }}" method="POST" class="inline" 
+                                  onsubmit="return confirm('Xóa đề thi này?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="7" class="text-center py-12 text-gray-500">
+                        Chưa có đề thi nào. Hãy tạo đề thi mới!
+                    </td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
-<div id="editModal" class="fixed inset-0 z-[60] hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-        <h3 class="text-xl font-bold mb-4">Chỉnh sửa đề thi</h3>
-        <form id="editForm" method="POST">
-            @csrf @method('PUT')
+<!-- Modal Tạo đề thi -->
+<div id="createQuizModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-2xl max-h-screen overflow-y-auto">
+        <h3 class="text-xl font-bold mb-6 sticky top-0 bg-white pt-0">Tạo đề thi mới</h3>
+        <form action="{{ route('admin.quizzes.store') }}" method="POST" id="createQuizForm">
+            @csrf
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Tên đề thi</label>
-                <input type="text" name="title" id="editTitle" class="w-full border-gray-300 rounded-lg" required>
+                <input type="text" name="title" class="w-full border rounded-xl px-4 py-3" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Mô tả</label>
+                <textarea name="description" class="w-full border rounded-xl px-4 py-3" rows="3"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Thời gian làm bài (phút)</label>
+                    <input type="number" name="duration" value="45" class="w-full border rounded-xl px-4 py-3" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Điểm pass (0-10)</label>
+                    <input type="number" name="pass_score" value="5.0" step="0.5" class="w-full border rounded-xl px-4 py-3" required>
+                </div>
+            </div>
+
+            <!-- Question Bank Section -->
+            <div class="mb-6 border-t pt-4">
+                <h4 class="font-semibold text-gray-700 mb-3">Chọn câu hỏi từ ngân hàng</h4>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Chủ đề</label>
+                    <select id="subjectSelect" class="w-full border rounded-xl px-4 py-2" onchange="loadQuestionsBySubject()">
+                        <option value="">-- Chọn chủ đề --</option>
+                        @foreach($subjects as $subject)
+                        <option value="{{ $subject->id }}">{{ $subject->name }} ({{ $subject->questions_count ?? 0 }} câu)</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div id="questionContainer" class="hidden mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium">Câu hỏi khả dụng</label>
+                        <button type="button" onclick="selectAllQuestions()" class="text-sm text-indigo-600 hover:text-indigo-800">
+                            Chọn tất cả
+                        </button>
+                    </div>
+                    <div id="questionList" class="border rounded-xl p-3 max-h-64 overflow-y-auto bg-gray-50">
+                    </div>
+                </div>
+
+                <div id="selectedQuestionsContainer" class="hidden">
+                    <label class="block text-sm font-medium mb-2">Câu hỏi đã chọn: <span id="selectedQuestionsCount">0</span></label>
+                    <div id="selectedQuestionsList" class="border rounded-xl p-3 bg-blue-50 max-h-48 overflow-y-auto">
+                        <p class="text-gray-500 text-sm">Chưa chọn câu hỏi nào</p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="selectedQuestionsInput" name="question_ids" value="[]">
+            </div>
+
+            <div class="flex gap-3 sticky bottom-0 bg-white pt-4 mt-6 border-t">
+                <button type="button" onclick="document.getElementById('createQuizModal').classList.add('hidden')" 
+                        class="flex-1 py-3 border rounded-xl hover:bg-gray-50">Hủy</button>
+                <button type="submit" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700">
+                    Tạo đề thi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Sửa đề thi -->
+<div id="editQuizModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-md max-h-screen overflow-y-auto">
+        <h3 class="text-xl font-bold mb-6 sticky top-0 bg-white pt-0">Sửa đề thi</h3>
+        <form id="editQuizForm" method="POST">
+            @csrf
+            @method('PUT')
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Tên đề thi</label>
+                <input type="text" id="editTitle" name="title" class="w-full border rounded-xl px-4 py-3" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Mô tả</label>
+                <textarea name="description" id="editDescription" class="w-full border rounded-xl px-4 py-3" rows="3"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Thời gian làm bài (phút)</label>
+                <input type="number" id="editDuration" name="duration" class="w-full border rounded-xl px-4 py-3" required>
             </div>
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-1">Thời gian (phút)</label>
-                <input type="number" name="duration" id="editDuration" class="w-full border-gray-300 rounded-lg" required>
+                <label class="block text-sm font-medium mb-1">Điểm pass (0-10)</label>
+                <input type="number" id="editPassScore" name="pass_score" step="0.5" class="w-full border rounded-xl px-4 py-3" required>
             </div>
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-500 font-medium hover:bg-gray-100 rounded-lg transition">Hủy</button>
-                <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition">Cập nhật</button>
+            <div class="flex gap-3 sticky bottom-0 bg-white pt-4 mt-6 border-t">
+                <button type="button" onclick="document.getElementById('editQuizModal').classList.add('hidden')" 
+                        class="flex-1 py-3 border rounded-xl hover:bg-gray-50">Hủy</button>
+                <button type="submit" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700">
+                    Cập nhật
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    function openEditModal(id, title, duration) {
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editDuration').value = duration;
-        document.getElementById('editForm').action = `/admin/quiz/${id}`;
-        document.getElementById('editModal').classList.remove('hidden');
+let questionsData = {};
+let selectedQuestions = {};
+
+async function loadQuestionsBySubject() {
+    const subjectId = document.getElementById('subjectSelect').value;
+    
+    if (!subjectId) {
+        document.getElementById('questionContainer').classList.add('hidden');
+        document.getElementById('selectedQuestionsContainer').classList.add('hidden');
+        return;
     }
 
-    function closeEditModal() {
-        document.getElementById('editModal').classList.add('hidden');
+    try {
+        const response = await fetch(`/admin/get-questions-by-subject/${subjectId}`);
+        const data = await response.json();
+        
+        questionsData[subjectId] = data.questions;
+        
+        // Build question list HTML
+        let html = '';
+        data.questions.forEach(q => {
+            const isSelected = selectedQuestions[q.id];
+            html += `
+                <div class="flex items-start gap-3 p-2 border-b hover:bg-white transition">
+                    <input type="checkbox" id="q-${q.id}" value="${q.id}" 
+                           class="mt-1 cursor-pointer" 
+                           onchange="updateSelectedQuestions()"
+                           ${isSelected ? 'checked' : ''}>
+                    <label for="q-${q.id}" class="flex-1 cursor-pointer">
+                        <div class="font-medium text-sm">${q.question.substring(0, 60)}...</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            <span class="inline-block mr-3">Độ khó: <span class="font-semibold capitalize">${q.difficulty}</span></span>
+                            <span class="inline-block">Điểm: <span class="font-semibold">${q.marks}</span></span>
+                        </div>
+                    </label>
+                </div>
+            `;
+        });
+        
+        document.getElementById('questionList').innerHTML = html;
+        document.getElementById('questionContainer').classList.remove('hidden');
+        updateSelectedQuestionsDisplay();
+    } catch (error) {
+        console.error('Error loading questions:', error);
+        alert('Lỗi khi tải câu hỏi');
     }
+}
 
-    function confirmDelete(button) {
-        Swal.fire({
-            title: 'Bạn có chắc chắn?',
-            text: "Tất cả câu hỏi và kết quả của đề thi này sẽ bị xóa sạch!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Vâng, xóa nó!',
-            cancelButtonText: 'Hủy'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                button.closest('form').submit();
-            }
-        })
+function updateSelectedQuestions() {
+    selectedQuestions = {};
+    
+    document.querySelectorAll('input[id^="q-"]:checked').forEach(checkbox => {
+        const qId = checkbox.value;
+        const q = questionsData[Object.keys(questionsData)[0]]?.find(q => q.id == qId);
+        if (q) {
+            selectedQuestions[qId] = q;
+        }
+    });
+    
+    // Update hidden input with selected question IDs
+    document.getElementById('selectedQuestionsInput').value = 
+        JSON.stringify(Object.keys(selectedQuestions).map(Number));
+    
+    updateSelectedQuestionsDisplay();
+}
+
+function updateSelectedQuestionsDisplay() {
+    const count = Object.keys(selectedQuestions).length;
+    document.getElementById('selectedQuestionsCount').textContent = count;
+    
+    if (count > 0) {
+        document.getElementById('selectedQuestionsContainer').classList.remove('hidden');
+        
+        let html = '';
+        Object.values(selectedQuestions).forEach(q => {
+            html += `
+                <div class="flex items-start justify-between gap-3 p-2 border-b bg-white mb-2 rounded">
+                    <div>
+                        <div class="font-medium text-sm">${q.question.substring(0, 50)}...</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Độ khó: ${q.difficulty} | Điểm: ${q.marks}
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeQuestion(${q.id})" 
+                            class="text-red-600 hover:text-red-800 text-xs">
+                        Xóa
+                    </button>
+                </div>
+            `;
+        });
+        
+        document.getElementById('selectedQuestionsList').innerHTML = html;
+    } else {
+        document.getElementById('selectedQuestionsContainer').classList.add('hidden');
     }
+}
+
+function removeQuestion(qId) {
+    delete selectedQuestions[qId];
+    document.getElementById(`q-${qId}`).checked = false;
+    updateSelectedQuestions();
+}
+
+function selectAllQuestions() {
+    document.querySelectorAll('input[id^="q-"]').forEach(cb => {
+        cb.checked = true;
+    });
+    updateSelectedQuestions();
+}
+
+function editQuiz(id, title, duration, passScore) {
+    document.getElementById('editTitle').value = title;
+    document.getElementById('editDuration').value = duration;
+    document.getElementById('editPassScore').value = passScore;
+    document.getElementById('editQuizForm').action = '/admin/quizzes/' + id;
+    document.getElementById('editQuizModal').classList.remove('hidden');
+}
 </script>
 @endsection
