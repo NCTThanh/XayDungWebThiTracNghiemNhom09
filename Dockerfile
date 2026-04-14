@@ -16,36 +16,30 @@ COPY --from=builder /app /var/www/html
 
 WORKDIR /var/www/html
 
-# Composer
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts
-
-# Environment
+# Cấu hình môi trường cho Image
 ENV WEBROOT=/var/www/html/public \
     PHP_UPLOAD_MAX_FILESIZE=100M \
     PHP_POST_MAX_SIZE=100M \
-    PHP_MEMORY_LIMIT=512M
+    PHP_MEMORY_LIMIT=512M \
+    COMPOSER_ALLOW_SUPERUSER=1
 
-# Tạo thư mục Laravel
-RUN mkdir -p storage/framework/{sessions,views,cache} \
-    && mkdir -p storage/logs \
-    && mkdir -p bootstrap/cache
+# Cài đặt Composer dependencies (Loại bỏ các plugin gây lỗi như prestissimo)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts
 
-# Permission (đặt trước CMD)
+# Tạo các thư mục framework (Sửa cú pháp dấu ngoặc nhọn)
+RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache
+
+# Cấp quyền (Sửa lỗi Permission denied)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/sites-available/default
+# Railway dùng port động, image này tự nhận qua biến PORT
+EXPOSE 80
 
-EXPOSE ${PORT:-80}
-
-# Clear Laravel cache khi start
+# Lệnh khởi chạy duy nhất (Kết hợp clear cache và chạy migration)
 CMD php artisan config:clear && \
     php artisan route:clear && \
     php artisan view:clear && \
-    /start.sh
-    CMD php artisan config:clear && \
-    php artisan route:clear && \
-    php artisan view:clear && \
     php artisan cache:clear && \
+    php artisan migrate --force && \
     /start.sh
