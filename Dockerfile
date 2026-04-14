@@ -1,42 +1,44 @@
-# ===================== STAGE 1: Build Assets =====================
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
+FROM php:8.2-fpm
+
+# Cài extension cần thiết
+RUN apt-get update && apt-get install -y \
+    git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev \
+    npm \
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# Cài Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Fix lỗi upload size (❗ sửa 100MM -> 100M)
+RUN echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size=100M" >> /usr/local/etc/php/conf.d/uploads.ini
+
+# Set working dir
+WORKDIR /var/www
+
+# Copy source code
 COPY . .
-RUN npm run build
 
-# ===================== STAGE 2: Runtime =====================
-FROM richarvey/nginx-php-fpm:latest
+# ❌ KHÔNG dùng prestissimo (đã bỏ hoàn toàn)
 
-WORKDIR /var/www/html
-COPY --from=builder /app .
+# Cài dependency PHP
+RUN composer install --no-dev --optimize-autoloader
 
-# Fix lỗi 100MM và các thông số PHP
-ENV PHP_UPLOAD_MAX_FILESIZE=100M \
-    PHP_POST_MAX_SIZE=100M \
-    WEBROOT=/var/www/html/public \
-    COMPOSER_ALLOW_SUPERUSER=1
+# Build frontend (nếu có Vite)
+RUN npm install && npm run build
 
-# Cài đặt PHP dependencies (Bỏ qua scripts để tránh lỗi plugin prestissimo)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts
+# Set quyền (quan trọng với Laravel)
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 storage bootstrap/cache
 
-# Tạo cấu trúc thư mục chuẩn
-RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Phân quyền "mạnh tay" để không bao giờ lỗi 500
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Cài nginx
+RUN apt-get install -y nginx
 
-# Copy cấu hình Nginx vào đúng vị trí của image richarvey
-COPY nginx.conf /etc/nginx/sites-available/default.conf
-
+# Expose port
 EXPOSE 80
 
-# Lệnh khởi chạy: Dọn rác, Migrate và Lên sóng
-CMD php artisan config:clear && \
-    php artisan route:clear && \
-    php artisan view:clear && \
-    php artisan cache:clear && \
-    php artisan migrate --force && \
-    /start.sh
+# Start services
+CMD service nginx start && php-fpm
