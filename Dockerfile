@@ -17,7 +17,7 @@ COPY --from=builder /app /var/www/html
 WORKDIR /var/www/html
 
 # Composer
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts
 
 # Environment
 ENV WEBROOT=/var/www/html/public \
