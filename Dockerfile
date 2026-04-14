@@ -1,42 +1,39 @@
-# ===================== STAGE 1: Build Assets (Node) =====================
+# ===================== STAGE 1: Build Assets =====================
 FROM node:22-alpine AS builder
-
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
-
 COPY . .
 RUN npm run build
 
-# ===================== STAGE 2: PHP + Nginx Runtime =====================
+# ===================== STAGE 2: Runtime =====================
 FROM richarvey/nginx-php-fpm:latest
 
-# Copy code từ builder
-COPY --from=builder /app /var/www/html
-
 WORKDIR /var/www/html
+COPY --from=builder /app .
 
-# Cấu hình môi trường cho Image
-ENV WEBROOT=/var/www/html/public \
-    PHP_UPLOAD_MAX_FILESIZE=100M \
+# Fix lỗi 100MM và các thông số PHP
+ENV PHP_UPLOAD_MAX_FILESIZE=100M \
     PHP_POST_MAX_SIZE=100M \
-    PHP_MEMORY_LIMIT=512M \
+    WEBROOT=/var/www/html/public \
     COMPOSER_ALLOW_SUPERUSER=1
 
-# Cài đặt Composer dependencies (Loại bỏ các plugin gây lỗi như prestissimo)
+# Cài đặt PHP dependencies (Bỏ qua scripts để tránh lỗi plugin prestissimo)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-plugins --no-scripts
 
-# Tạo các thư mục framework (Sửa cú pháp dấu ngoặc nhọn)
+# Tạo cấu trúc thư mục chuẩn
 RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache
 
-# Cấp quyền (Sửa lỗi Permission denied)
+# Phân quyền "mạnh tay" để không bao giờ lỗi 500
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Railway dùng port động, image này tự nhận qua biến PORT
+# Copy cấu hình Nginx vào đúng vị trí của image richarvey
+COPY nginx.conf /etc/nginx/sites-available/default.conf
+
 EXPOSE 80
 
-# Lệnh khởi chạy duy nhất (Kết hợp clear cache và chạy migration)
+# Lệnh khởi chạy: Dọn rác, Migrate và Lên sóng
 CMD php artisan config:clear && \
     php artisan route:clear && \
     php artisan view:clear && \
