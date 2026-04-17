@@ -473,16 +473,18 @@ class AdminController extends Controller implements HasMiddleware {
     // ==========================================
     // ĐIỂM DANH
     // ==========================================
-public function attendance()
+ public function attendance()
     {
-       
-        $sessions = DB::table('attendance_sessions')
+        $admin = session('admin');
+        $query = DB::table('attendance_sessions')
             ->select('attendance_sessions.*')
-            ->selectRaw('(SELECT COUNT(*) FROM attendance_records WHERE attendance_records.session_id = attendance_sessions.id) as records_count')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->selectRaw('(SELECT COUNT(*) FROM attendance_records WHERE attendance_records.session_id = attendance_sessions.id) as records_count');
 
-        // Không cần truyền $quizzes sang view nữa
+        if ($admin->role === 'teacher') {
+            $query->where('created_by', $admin->id);
+        }
+
+        $sessions = $query->orderBy('created_at', 'desc')->get();
         return view('admin.attendance', compact('sessions'));
     }
     // ==========================================
@@ -501,10 +503,15 @@ public function attendance()
 }
 public function attendanceDetail($id)
     {
+        $admin = session('admin');
         $session = DB::table('attendance_sessions')->where('id', $id)->first();
+        
         if (!$session) return back()->with('error', 'Không tìm thấy phiên điểm danh');
 
-        // Lấy danh sách sinh viên đã điểm danh trong phiên này
+        if ($admin->role === 'teacher' && $session->created_by !== $admin->id) {
+            return back()->with('error', 'Bạn không có quyền xem chi tiết phiên điểm danh này!');
+        }
+
         $records = DB::table('attendance_records')
             ->join('users', 'attendance_records.user_id', '=', 'users.id')
             ->where('attendance_records.session_id', $id)
@@ -514,6 +521,7 @@ public function attendanceDetail($id)
 
         return view('admin.attendance-detail', compact('session', 'records'));
     }
+
     // ==========================================
     // CÁC HÀM KHÁC
     // ==========================================

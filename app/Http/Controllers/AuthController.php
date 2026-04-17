@@ -57,7 +57,7 @@ class AuthController extends Controller
                 return redirect()->route('admin.dashboard')->with('success', 'Đăng nhập thành công!');
             }
         }
-
+        
         // ==================== 2. KIỂM TRA GIẢNG VIÊN (bảng giangvien) ====================
         $teacher = DB::table('giangvien')
                     ->where('username', $input)
@@ -97,7 +97,34 @@ class AuthController extends Controller
             ->with('error', 'Tên đăng nhập / Email hoặc mật khẩu không đúng!')
             ->withInput();
     }
+    // ==================== Hàm kiểm tra đăng ký của Sinh Viên ====================
+    public function registerForm()
+    {
+        return view('auth.register'); 
+    }
 
+    // Hàm xử lý đăng ký và mã hóa MD5
+    public function register(Request $request)
+    {
+        // 1. Validate dữ liệu
+        $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:users',
+            'student_code' => 'required|unique:users',
+            'password' => 'required|min:6',
+        ]);
+
+        // 2. Lưu vào Database với MD5
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'student_code' => $request->student_code,
+            'class' => $request->class,
+            'password' => md5($request->password),
+        ]);
+
+        return redirect('/login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
+    }
     public function logout()
     {
         Auth::logout();
